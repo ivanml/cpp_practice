@@ -16,13 +16,18 @@ void print(const std::vector<T> &v, bool newline = true) {
 }
 
 template <class T>
-void print_vv(const std::vector<std::vector<T> > &vv) {
+void print_vv(const std::vector<std::vector<T> > &vv,
+              bool vertical = false) {
   std::cout << "[";
   for (int i = 0; i < vv.size(); ++ i) {
+    if (vertical)
+      std::cout << std::endl << " ";
     print(vv[i], false);
     if (i < vv.size() - 1)
       std::cout << ", ";
   }
+  if (vertical)
+    std::cout << std::endl;
   std::cout << "]" << std::endl;
 }
 

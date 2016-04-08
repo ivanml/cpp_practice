@@ -1,26 +1,20 @@
 #include <iostream>
 #include "print.h"
-#include <unordered_map>
+#include <sstream>
 
 using namespace std;
 
 class TrieNode {
 public:
-  // Initialize your data structure here.
-  TrieNode() : text(""), isWord(false) {}
-  TrieNode(string str) : text(str), isWord(false) {}
-  ~TrieNode() {
-    for (unordered_map<string, TrieNode *>::iterator it = children.begin(); it != children.end(); ++ it) {
-      if (it->second) {
-        delete it->second;
-        it->second = NULL;
-      }
-    }
-  }
+  TrieNode(char c = '\0', bool b = false) : 
+    val(c), 
+    isWord(b), 
+    children(vector<TrieNode *>(26)) {} 
+  ~TrieNode() {}
 
+  char val;
   bool isWord;
-  string text;
-  unordered_map<string, TrieNode *> children;
+  vector<TrieNode *> children;  
 };
 
 class Trie {
@@ -30,73 +24,52 @@ public:
   }
 
   ~Trie() {
-    delete root;
-    root = NULL;
-  }
-
-  // insert a word from node
-  void insertFrom(TrieNode * node, const string &word, int i) {
-    if (i == word.size())
-      return;
-
-    string cur_text = node->text + word[i];
-    unordered_map<string, TrieNode *>::iterator it = (node->children).find(cur_text);
-    if (it != (node->children).end()) {
-      if (i == word.size() - 1)
-        it->second->isWord = true;
-      insertFrom(it->second, word, i + 1);
-      return;
-    }
-
-    // if no match till i, we need to insert word[0, i] first then insert recursively from word[0, i]
-    (node->children)[cur_text] = new TrieNode(cur_text);
-    if (i == word.size() - 1)
-      (node->children)[cur_text]->isWord = true;
-    insertFrom((node->children)[cur_text], word, i + 1);
   }
 
   // Inserts a word into the trie.
   void insert(const string &word) {
-    insertFrom(root, word, 0);
-  }
-  
-  // search "word" from node
-  bool searchFrom(TrieNode * &node, const string &word, int i) {
-    if (i == word.size()) return node->isWord;
+    if (word.size() <= 0) return;
 
-    unordered_map<string, TrieNode *>::iterator it = (node->children).find(node->text + word[i]);
-    if (it != (node->children).end()) {
-      return searchFrom(it->second, word, i + 1);
+    TrieNode * node = root;
+    for (int i = 0; i < word.size(); ++ i) {
+      if (!node->children[word[i] - 'a']) {
+        node->children[word[i] - 'a'] = new TrieNode(word[i]);
+      }
+      node = node->children[word[i] - 'a'];
     }
 
-    return false;
+    node->isWord = true;
+  }
+
+  bool search(const string &word, int idx, TrieNode * node, bool fullWord) {
+    if (!node) return false;
+    TrieNode * child = node->children[word[idx] - 'a'];
+    if (!child) return false;
+
+    if (idx == word.size() - 1) { 
+      return fullWord ? child->isWord : true;
+    }
+    
+    return search(word, idx + 1, child, fullWord);
   }
 
   // Returns if the word is in the trie.
   bool search(const string &word) {
-    return searchFrom(root, word, 0);
-  }
-
-  // search prefix from node
-  bool startsWithFrom(TrieNode * node, const string &prefix, int i) {
-    if (i == prefix.size()) return true;
-
-    unordered_map<string, TrieNode *>::iterator it = (node->children).find(node->text + prefix[i]);
-    if (it == (node->children).end())
-      return false;
-
-    return startsWithFrom(it->second, prefix, i + 1);
+    if (word.size() == 0) return true;
+    return search(word, 0, root, true);
   }
   
   // Returns if there is any word in the trie
   // that starts with the given prefix.
   bool startsWith(const string &prefix) {
-    return startsWithFrom(root, prefix, 0);
+    if (prefix.size() == 0) return true;
+    return search(prefix, 0, root, false);
   }
 
   void printTrie() const {
+    cout << "[";
     printTrie(root);
-    cout << endl;
+    cout << "]" << endl;
   }
 
 private:
@@ -104,56 +77,44 @@ private:
 
   void printTrie(TrieNode * node) const {
     if (!node) return;
-    cout << "\"" << node->text;
-    if (node->isWord)
-      cout << "(true)";
-    cout << "\"" << "->[";
-    int cnt = (node->children).size();
-    for (unordered_map<string, TrieNode *>::iterator it = (node->children).begin(); 
-         it != (node->children).end(); ++ it) 
-    {
-      printTrie(it->second);
-      cnt --;
-      if (cnt > 0)
+    
+    stringstream ss;
+    if (node->isWord) {
+      ss << "(" << node->isWord << ")";
+    }
+    cout << node->val << ss.str() << "->[";
+    for (int i = 0; i < node->children.size(); ++ i) {
+      TrieNode * child = node->children[i];
+      if (child) {
+        printTrie(child);
         cout << ", ";
+      }
     }
     cout << "]";
   }
 
 };
 
-int main() {
-
-  /*
-  Trie t;
-
-  t.insert("a");
-  t.insert("b");
-  t.insert("c");
-  t.insert("ab");
-  t.insert("def");
-  t.insert("dd");
-  t.insert("dd");
-  t.insert("deg");
-  t.printTrie();
-  cout << t.search("deg") << endl;
-
-  cout << "starts with: " << endl;
-  cout << t.startsWith("def") << endl;
-  cout << t.startsWith("dt") << endl;
-
-  t.insert("dtke");
-  t.printTrie();  
-  cout << t.startsWith("dt") << endl;
-  */
-  
+int main() { 
 
   Trie t;
   t.insert("abc");
-  t.insert("ab");
-  cout << t.search("ab") << endl;
-  cout << t.startsWith("ab") << endl;
+  t.insert("abc");
+  t.insert("abcd");
+  t.insert("bcd");
+  t.insert("cde");
+  t.insert("acde");
   t.printTrie();
+
+  cout << t.search("abc") << endl;
+  cout << t.search("bcde") << endl;
+  cout << t.search("bc") << endl;
+  cout << t.search("cdef") << endl;
+
+  cout << t.startsWith("abc") << endl;
+  cout << t.startsWith("bcde") << endl;
+  cout << t.startsWith("bc") << endl;
+  cout << t.startsWith("c") << endl;
 
   return 0;
 }
